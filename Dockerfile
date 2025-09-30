@@ -6,7 +6,7 @@ WORKDIR /app
 COPY pyproject.toml ./
 RUN pip install poetry && \
     poetry config virtualenvs.create false && \
-    poetry install --no-dev
+    poetry install --without dev
 
 # Copy source code and scripts
 COPY src/ ./src/
