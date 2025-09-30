@@ -5,17 +5,15 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy requirements first for better caching
+# Copy source code and requirements
 COPY pyproject.toml ./
+COPY src/ ./src/
+COPY scripts/ ./scripts/
 
 # Create virtual environment and install dependencies
 RUN python -m venv .venv && \
     .venv/bin/python -m pip install --upgrade pip && \
     .venv/bin/python -m pip install -e .
-
-# Copy source code and scripts
-COPY src/ ./src/
-COPY scripts/ ./scripts/
 
 # Create database during build
 RUN .venv/bin/python scripts/ingest_formulary.py
