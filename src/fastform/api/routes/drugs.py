@@ -44,102 +44,87 @@ async def search_drugs(request: DrugSearchRequest):
         # Clean search query
         clean_query = " ".join(request.query.lower().strip().split())
 
-        # Build formulary filter
-        formulary_filter = ""
-        params = []
-
-        if request.formulary_id:
-            formulary_filter = "AND fc.formulary_id = ?"
-            params.append(request.formulary_id)
-
-        # Query with correct column names
-        search_query = f"""
+        # Query the drug_rules table (current schema)
+        search_query = """
             SELECT DISTINCT
-                d.id,
-                d.name,
-                d.generic_name,
-                d.brand_name,
-                d.ndc,
+                id,
+                name,
+                generic_name,
+                brand_name,
+                ndc,
                 CASE 
-                    WHEN d.strength_qty IS NOT NULL AND d.strength_unit IS NOT NULL 
-                    THEN CAST(d.strength_qty AS TEXT) || d.strength_unit
-                    WHEN d.strength_qty IS NOT NULL 
-                    THEN CAST(d.strength_qty AS TEXT)
-                    ELSE d.strength_unit
+                    WHEN strength_qty IS NOT NULL AND strength_unit IS NOT NULL
+                    THEN CAST(strength_qty AS TEXT) || strength_unit
+                    WHEN strength_qty IS NOT NULL 
+                    THEN CAST(strength_qty AS TEXT)
+                    ELSE strength_unit
                 END as strength,
-                d.dosage_form,
-                fc.formulary_tier,
-                fc.prior_authorization,
-                fc.quantity_limit,
-                fc.step_therapy,
-                f.plan_name as formulary_name,
-                f.insurer
-            FROM drugs d
-            JOIN formulary_coverage fc ON d.id = fc.drug_id
-            JOIN formularies f ON fc.formulary_id = f.id
-            WHERE f.is_active = 1
-            {formulary_filter}
-            AND (
-                LOWER(REPLACE(d.name, ' ', '')) LIKE LOWER(REPLACE(?, ' ', '')) OR
-                LOWER(REPLACE(d.generic_name, ' ', '')) LIKE LOWER(REPLACE(?, ' ', '')) OR
-                LOWER(REPLACE(d.brand_name, ' ', '')) LIKE LOWER(REPLACE(?, ' ', '')) OR
-                LOWER(d.ndc) LIKE LOWER(?) OR
-                LOWER(d.name) LIKE LOWER(?) OR
-                LOWER(d.generic_name) LIKE LOWER(?) OR
-                LOWER(d.brand_name) LIKE LOWER(?)
-            )
+                dosage_form,
+                formulary_tier,
+                prior_authorization,
+                quantity_limit,
+                step_therapy,
+                'Medicare Part D' as formulary_name,
+                'CMS' as insurer
+            FROM drug_rules
+            WHERE 
+                LOWER(REPLACE(name, ' ', '')) LIKE LOWER(REPLACE(?, ' ', '')) OR
+                LOWER(REPLACE(generic_name, ' ', '')) LIKE LOWER(REPLACE(?, ' ', '')) OR
+                LOWER(REPLACE(brand_name, ' ', '')) LIKE LOWER(REPLACE(?, ' ', '')) OR
+                LOWER(ndc) LIKE LOWER(?) OR
+                LOWER(name) LIKE LOWER(?) OR
+                LOWER(generic_name) LIKE LOWER(?) OR
+                LOWER(brand_name) LIKE LOWER(?)
             ORDER BY 
                 CASE 
-                    WHEN LOWER(d.name) = LOWER(?) THEN 1
-                    WHEN LOWER(d.generic_name) = LOWER(?) THEN 2
-                    WHEN LOWER(d.brand_name) = LOWER(?) THEN 3
+                    WHEN LOWER(name) = LOWER(?) THEN 1
+                    WHEN LOWER(generic_name) = LOWER(?) THEN 2
+                    WHEN LOWER(brand_name) = LOWER(?) THEN 3
                     ELSE 4
                 END,
-                d.name
+                name
             LIMIT ?
         """
 
-        # Prepare search parameters
-        like_pattern = f"%{clean_query}%"
-        params.extend(
-            [
-                like_pattern,
-                like_pattern,
-                like_pattern,
-                like_pattern,
-                like_pattern,
-                like_pattern,
-                like_pattern,
-                request.query,
-                request.query,
-                request.query,
-                request.limit,
-            ]
-        )
+        params = [
+            f"%{clean_query}%",  # name
+            f"%{clean_query}%",  # generic_name
+            f"%{clean_query}%",  # brand_name
+            f"%{clean_query}%",  # ndc
+            f"%{request.query}%",  # name exact
+            f"%{request.query}%",  # generic_name exact
+            f"%{request.query}%",  # brand_name exact
+            f"%{request.query}%",  # name priority
+            f"%{request.query}%",  # generic_name priority
+            f"%{request.query}%",  # brand_name priority
+            request.limit,
+        ]
 
         cursor = conn.execute(search_query, params)
-        results = []
+        rows = cursor.fetchall()
 
-        for row in cursor.fetchall():
-            drug = DrugItem(
-                id=row[0],
-                name=row[1],
-                generic_name=row[2],
-                brand_name=row[3],
-                ndc=row[4],
-                strength=row[5],
-                dosage_form=row[6],
-                formulary_tier=row[7],
-                prior_authorization=bool(row[8]),
-                quantity_limit=bool(row[9]) if row[9] is not None else False,
-                step_therapy=bool(row[10]),
-                formulary_name=row[11],
-                insurer=row[12],
+        results = []
+        for row in rows:
+            results.append(
+                DrugItem(
+                    id=row[0],
+                    name=row[1],
+                    generic_name=row[2],
+                    brand_name=row[3],
+                    ndc=row[4],
+                    strength=row[5],
+                    dosage_form=row[6],
+                    formulary_tier=row[7],
+                    prior_authorization=bool(row[8]),
+                    quantity_limit=bool(row[9]),
+                    step_therapy=bool(row[10]),
+                    formulary_name=row[11],
+                    insurer=row[12],
+                )
             )
-            results.append(drug)
 
         conn.close()
         return results
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
