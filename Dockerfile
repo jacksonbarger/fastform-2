@@ -7,10 +7,11 @@ WORKDIR /app
 
 # Copy requirements first for better caching
 COPY pyproject.toml ./
-RUN pip install poetry && \
-    poetry config virtualenvs.create true && \
-    poetry config virtualenvs.in-project true && \
-    poetry install --without dev
+
+# Create virtual environment and install dependencies
+RUN python -m venv .venv && \
+    .venv/bin/python -m pip install --upgrade pip && \
+    .venv/bin/python -m pip install -e .
 
 # Copy source code and scripts
 COPY src/ ./src/
