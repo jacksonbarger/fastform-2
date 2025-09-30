@@ -1186,7 +1186,8 @@ def load_comprehensive_formulary_data(db_path: str) -> None:
     # Show tier distribution
     logger.info("Formulary tier distribution:")
     cursor = conn.execute(
-        "SELECT formulary_tier, COUNT(*) FROM drug_rules \n        GROUP BY formulary_tier ORDER BY formulary_tier"
+        """SELECT formulary_tier, COUNT(*) FROM drug_rules
+        GROUP BY formulary_tier ORDER BY formulary_tier"""
     )
     for tier, count in cursor.fetchall():
         tier_names = {
