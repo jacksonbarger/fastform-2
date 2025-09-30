@@ -10,13 +10,12 @@ COPY pyproject.toml ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 
-# Create virtual environment and install dependencies
-RUN python -m venv .venv && \
-    .venv/bin/python -m pip install --upgrade pip && \
-    .venv/bin/python -m pip install -e .
+# Install dependencies
+RUN python -m pip install --upgrade pip && \
+    python -m pip install -e .
 
 # Create database during build
-RUN .venv/bin/python scripts/ingest_formulary.py
+RUN python scripts/ingest_formulary.py
 
 # Set environment variables
 ENV PYTHONPATH=/app/src
@@ -31,4 +30,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 
 # Run the application
 WORKDIR /app/src
-CMD ["../.venv/bin/python", "-m", "uvicorn", "fastform.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "fastform.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
