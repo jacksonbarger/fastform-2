@@ -30,4 +30,5 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/v1/health || exit 1
 
 # Run the application
-CMD [".venv/bin/python", "-m", "uvicorn", "fastform.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+WORKDIR /app/src
+CMD ["../.venv/bin/python", "-m", "uvicorn", "fastform.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
