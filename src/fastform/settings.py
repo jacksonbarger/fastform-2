@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,8 +10,8 @@ class Settings(BaseSettings):
     db_path: str = "fastform.db"
 
     # External integrations / secrets
-    openai_api_key: Optional[str] = None
-    fastform_api_token: Optional[str] = None
+    openai_api_key: str | None = None
+    fastform_api_token: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

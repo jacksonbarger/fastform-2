@@ -1,5 +1,5 @@
-from typing import List, Optional
 import sqlite3
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -7,48 +7,51 @@ from fastform.settings import settings
 
 router = APIRouter()
 
+
 class DrugSearchRequest(BaseModel):
     query: str
     limit: int = 50
-    formulary_id: Optional[int] = None
+    formulary_id: int | None = None
+
 
 class DrugItem(BaseModel):
     id: int
     name: str
-    generic_name: Optional[str] = None
-    brand_name: Optional[str] = None
-    ndc: Optional[str] = None
-    strength: Optional[str] = None
-    dosage_form: Optional[str] = None
-    formulary_tier: Optional[int] = None
+    generic_name: str | None = None
+    brand_name: str | None = None
+    ndc: str | None = None
+    strength: str | None = None
+    dosage_form: str | None = None
+    formulary_tier: int | None = None
     prior_authorization: bool = False
     quantity_limit: bool = False
     step_therapy: bool = False
-    formulary_name: Optional[str] = None
-    insurer: Optional[str] = None
+    formulary_name: str | None = None
+    insurer: str | None = None
 
-@router.post("/search", response_model=List[DrugItem])
+
+@router.post("/search", response_model=list[DrugItem])
 async def search_drugs(request: DrugSearchRequest):
     """
     Search for drugs with enhanced multi-field matching and optional formulary filtering.
     """
     if not request.query.strip():
         return []
-    
+
     try:
         conn = sqlite3.connect(settings.db_path)
-        
+
         # Clean search query
-        clean_query = ' '.join(request.query.lower().strip().split())
-        
+        clean_query = " ".join(request.query.lower().strip().split())
+
         # Build formulary filter
         formulary_filter = ""
         params = []
-        
+
         if request.formulary_id:
             formulary_filter = "AND fc.formulary_id = ?"
             params.append(request.formulary_id)
-        
+
         # Query with correct column names
         search_query = f"""
             SELECT DISTINCT
@@ -95,20 +98,28 @@ async def search_drugs(request: DrugSearchRequest):
                 d.name
             LIMIT ?
         """
-        
+
         # Prepare search parameters
         like_pattern = f"%{clean_query}%"
-        params.extend([
-            like_pattern, like_pattern, like_pattern,
-            like_pattern,
-            like_pattern, like_pattern, like_pattern,
-            request.query, request.query, request.query,
-            request.limit
-        ])
-        
+        params.extend(
+            [
+                like_pattern,
+                like_pattern,
+                like_pattern,
+                like_pattern,
+                like_pattern,
+                like_pattern,
+                like_pattern,
+                request.query,
+                request.query,
+                request.query,
+                request.limit,
+            ]
+        )
+
         cursor = conn.execute(search_query, params)
         results = []
-        
+
         for row in cursor.fetchall():
             drug = DrugItem(
                 id=row[0],
@@ -123,12 +134,12 @@ async def search_drugs(request: DrugSearchRequest):
                 quantity_limit=bool(row[9]) if row[9] is not None else False,
                 step_therapy=bool(row[10]),
                 formulary_name=row[11],
-                insurer=row[12]
+                insurer=row[12],
             )
             results.append(drug)
-        
+
         conn.close()
         return results
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
