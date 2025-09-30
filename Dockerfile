@@ -15,7 +15,8 @@ RUN python -m pip install --upgrade pip && \
     python -m pip install -e .
 
 # Create database during build
-RUN python scripts/ingest_formulary.py
+RUN python scripts/ingest_formulary.py && \
+    python scripts/migrate_to_multi_formulary.py
 
 # Set environment variables
 ENV PYTHONPATH=/app/src
