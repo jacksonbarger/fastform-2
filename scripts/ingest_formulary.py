@@ -53,7 +53,8 @@ def create_database_schema(db_path: str) -> None:
 
 
 def load_comprehensive_formulary_data(db_path: str) -> None:
-    """Load comprehensive sample formulary data representing a realistic Medicare Part D formulary."""
+    """Load comprehensive sample formulary data representing a realistic
+    Medicare Part D formulary."""
 
     # Comprehensive drug data representing real Medicare Part D coverage
     sample_drugs = [
@@ -1185,7 +1186,7 @@ def load_comprehensive_formulary_data(db_path: str) -> None:
     # Show tier distribution
     logger.info("Formulary tier distribution:")
     cursor = conn.execute(
-        "SELECT formulary_tier, COUNT(*) FROM drug_rules GROUP BY formulary_tier ORDER BY formulary_tier"
+        "SELECT formulary_tier, COUNT(*) FROM drug_rules \n        GROUP BY formulary_tier ORDER BY formulary_tier"
     )
     for tier, count in cursor.fetchall():
         tier_names = {

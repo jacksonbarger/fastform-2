@@ -1,0 +1,24 @@
+# System directories
+Pictures/
+.config/
+Library/
+Desktop/
+Documents/
+Downloads/
+Movies/
+Music/
+Applications/
+.Trash/
+
+# Development files
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+.DS_Store
+.git/
+
+# Logs and databases (except the one we need)
+*.log
+formulary_data.db

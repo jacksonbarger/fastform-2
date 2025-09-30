@@ -4,7 +4,9 @@ WORKDIR /app
 
 # Copy requirements first for better caching
 COPY pyproject.toml ./
-RUN pip install poetry && \n    poetry config virtualenvs.create false && \n    poetry install --no-dev
+RUN pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-dev
 
 # Copy source code and scripts
 COPY src/ ./src/
@@ -21,7 +23,8 @@ ENV PORT=8000
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \n  CMD curl -f http://localhost:8000/v1/health || exit 1
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/v1/health || exit 1
 
 # Run the application
 CMD ["python", "-m", "uvicorn", "fastform.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
